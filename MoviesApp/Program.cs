@@ -23,7 +23,8 @@ builder.Services.AddOutputCache();
 
 builder.Services.AddScoped<IGenresRepository, GenresRepository>();
 builder.Services.AddScoped<IActorsRepository, ActorsRepository>();
-
+builder.Services.AddScoped<IMoviesRepository, MoviesRepository>();
+builder.Services.AddScoped<ICommentsRepository, CommentsRepository>();
 //Azure Storage
 //builder.Services.AddTransient<IFileStorage, AzureFileStorage>();
 
@@ -51,8 +52,11 @@ app.UseOutputCache();
 
 app.MapGet("/", () => "Hello World!");
 
+//Map endpoints
 app.MapGroup("/genres").MapGenres();
 app.MapGroup("/actors").MapActors();
+app.MapGroup("/movies").MapMovies();
+app.MapGroup("movies/{movieId:int}/comments").MapComments();
 
 
 app.Run();

@@ -37,6 +37,25 @@ namespace MoviesApp.Repository
             }
         }
 
+        public async Task<List<int>> Exists(List<int> ids)
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("Id", typeof(int));
+
+            foreach (var genreId in ids)
+            {
+                dt.Rows.Add(genreId);
+            }
+
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var idsOfGenresThatExists = await connection
+                    .QueryAsync<int>("Genres_GetBySevralId", new { genresIds = dt },//gendersIds
+                    commandType: CommandType.StoredProcedure);
+
+                return idsOfGenresThatExists.ToList();
+            }
+        }
         public async Task<List<Genre>> GetAll()
         {
             //instantiate connection

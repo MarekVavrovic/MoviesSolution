@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using MoviesApp.DTOs;
 using MoviesApp.Entities;
 using System.Data;
 
@@ -8,9 +9,11 @@ namespace MoviesApp.Repository
     public class ActorsRepository : IActorsRepository
     {
         private readonly string _connectionString;
-        public ActorsRepository(IConfiguration configuration)
+        private readonly HttpContext _httpContext;
+        public ActorsRepository(IConfiguration configuration, IHttpContextAccessor httpContextAccessor)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")!;
+            _httpContext = httpContextAccessor.HttpContext!;
         }
 
         public async Task<int> Create(Actor actor)
@@ -26,12 +29,18 @@ namespace MoviesApp.Repository
             }
         }
 
-        public async Task<List<Actor>> GetAll()
+        public async Task<List<Actor>> GetAll(PaginationDTO pagination)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
                 var actors = await connection.QueryAsync<Actor>("Actors_GetAll",
+                    new { pagination.Page, pagination.RecordsPerPage },
                     commandType: CommandType.StoredProcedure);
+
+                var actorsCount = await connection.QuerySingleAsync<int>("Actors_Count",
+                    commandType: CommandType.StoredProcedure);
+
+                _httpContext.Response.Headers.Append("totalAmountOfRecords", actorsCount.ToString());
 
                 return actors.ToList();
             }
@@ -57,6 +66,24 @@ namespace MoviesApp.Repository
             }
         }
 
+        public async Task<List<int>> Exists(List<int> ids)
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("Id", typeof(int));
+
+            foreach (var id in ids)
+            {
+                dt.Rows.Add(id);
+            }
+
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var idsOfExistingActors = await connection.QueryAsync<int>
+                    ("Actors_GetBySeveralIds", new { actorsIds = dt },
+                    commandType: CommandType.StoredProcedure);
+                return idsOfExistingActors.ToList();
+            }
+        }
         public async Task Update(Actor actor)
         {
             using (var connection = new SqlConnection(_connectionString))
@@ -77,6 +104,17 @@ namespace MoviesApp.Repository
             {
                 await connection.ExecuteAsync("Actors_Delete",
                     new { id }, commandType: CommandType.StoredProcedure);
+            }
+        }
+
+        public async Task<List<Actor>> GetByName(string name)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var actors = await connection.QueryAsync<Actor>("Actors_GetByName",
+                    new { name }, commandType: CommandType.StoredProcedure);
+
+                return actors.ToList();
             }
         }
 
