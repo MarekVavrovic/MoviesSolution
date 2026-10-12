@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using MoviesApp.DTOs;
 using MoviesApp.Entities;
+using MoviesApp.Filters;
 using MoviesApp.Repository;
 using MoviesApp.Services;
 
@@ -15,18 +16,19 @@ namespace MoviesApp.Endpoints
 
         public static RouteGroupBuilder MapMovies(this RouteGroupBuilder group)
         {
-            group.MapPost("/", Create).DisableAntiforgery();
+            group.MapPost("/", Create).DisableAntiforgery().AddEndpointFilter<ValidationFilter<CreateMovieDTO>>().RequireAuthorization("isadmin");
             group.MapGet("/", GetAll).CacheOutput(options =>
             {
                 options.Expire(TimeSpan.FromSeconds(30));
                 options.Tag("movies-get");
             });
-            group.MapGet("/{id:int}", GetById);
-            group.MapPut("/{id:int}", Update).DisableAntiforgery();
-            group.MapDelete("/{id:int}", Delete);
-            group.MapPost("/{id:int}/assignGenres", AssignGenres);
 
-            group.MapPost("/{id:int}/assignActors", AssignActors);
+            group.MapGet("/{id:int}", GetById);
+            group.MapPut("/{id:int}", Update).DisableAntiforgery().AddEndpointFilter<ValidationFilter<CreateMovieDTO>>().RequireAuthorization("isadmin");
+            group.MapDelete("/{id:int}", Delete).RequireAuthorization("isadmin");
+
+            group.MapPost("/{id:int}/assignGenres", AssignGenres).RequireAuthorization("isadmin");
+            group.MapPost("/{id:int}/assignActors", AssignActors).RequireAuthorization("isadmin");
 
             return group;
         }

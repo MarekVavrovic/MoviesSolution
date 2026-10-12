@@ -37,6 +37,17 @@ namespace MoviesApp.Repository
             }
         }
 
+        public async Task<bool> Exists(int id,string name)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var exists = await connection.QuerySingleAsync<bool>(
+                    @"Genres_ExistsByIdAndName", new { id, name }, commandType: CommandType.StoredProcedure);
+
+                return exists;
+            }
+        }
+
         public async Task<List<int>> Exists(List<int> ids)
         {
             var dt = new DataTable();

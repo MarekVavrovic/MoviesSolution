@@ -19,7 +19,7 @@ namespace MoviesApp.Repository
             using (var connection = new SqlConnection(connectionString))
             {
                 var id = await connection.QuerySingleAsync<int>("Comments_Create",
-                    new { comment.Body, comment.MovieId },
+                    new { comment.Body, comment.MovieId, comment.UserId },
                     commandType: CommandType.StoredProcedure);
 
                 comment.Id = id;

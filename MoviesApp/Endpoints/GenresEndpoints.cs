@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OutputCaching;
 using MoviesApp.DTOs;
 using MoviesApp.Entities;
+using MoviesApp.Filters;
 using MoviesApp.Repository;
 
 namespace MoviesApp.Endpoints
@@ -11,18 +12,16 @@ namespace MoviesApp.Endpoints
     {
         public static RouteGroupBuilder MapGenres(this RouteGroupBuilder group)
         {
-            group.MapGet("/", GetGenres).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("genres-get"));
+            group.MapGet("/", GetGenres).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("genres-get")).RequireAuthorization();
 
             group.MapGet("/{id:int}", GetById);
 
             //Create
-            group.MapPost("/", Create);
-
+            group.MapPost("/", Create).AddEndpointFilter<ValidationFilter<CreateGenreDTO>>().RequireAuthorization("isadmin");
             //Update
-            group.MapPut("/{id:int}", Update);
-
+            group.MapPut("/{id:int}", Update).AddEndpointFilter<ValidationFilter<CreateGenreDTO>>().RequireAuthorization("isadmin"); 
             //Delete
-            group.MapDelete("/{id:int}", Delete);
+            group.MapDelete("/{id:int}", Delete).RequireAuthorization("isadmin"); 
 
             return group;
         }
@@ -49,8 +48,9 @@ namespace MoviesApp.Endpoints
             return TypedResults.Ok(genreDTO);
         }
 
-        static async Task<Created<GenreDTO>> Create(CreateGenreDTO createGenreDto, IGenresRepository repository, IOutputCacheStore outputCacheStore, IMapper mapper)
-        {
+        static async Task<Created<GenreDTO>>Create(CreateGenreDTO createGenreDto, IGenresRepository repository, 
+            IOutputCacheStore outputCacheStore, IMapper mapper)
+        {            
             var genre = mapper.Map<Genre>(createGenreDto);
 
             var id = await repository.Create(genre);
@@ -61,8 +61,10 @@ namespace MoviesApp.Endpoints
             return TypedResults.Created($"/genres/{id}", genreDTO);
         }
 
-        static async Task<Results<NotFound, NoContent>> Update(int id, CreateGenreDTO createGenreDto, IGenresRepository repository, IOutputCacheStore outputCacheStore, IMapper mapper)
-        {
+        static async Task<Results<NotFound, NoContent>> Update(int id, 
+            CreateGenreDTO createGenreDto, IGenresRepository repository, 
+            IOutputCacheStore outputCacheStore, IMapper mapper)
+        {           
             var exists = await repository.Exists(id);
 
             if (!exists) return TypedResults.NotFound();

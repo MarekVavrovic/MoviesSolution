@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using MoviesApp.DTOs;
 using MoviesApp.Entities;
+using MoviesApp.Filters;
 using MoviesApp.Repository;
 using MoviesApp.Services;
 
@@ -15,29 +17,13 @@ namespace MoviesApp.Endpoints
         private readonly static string container = "actors";
         public static RouteGroupBuilder MapActors(this RouteGroupBuilder group)
         {
-            group.MapGet("/", GetAll).CacheOutput(options =>
-            {
-                options.Expire(TimeSpan.FromSeconds(30));
-                options.Tag("actors-get");
-            });
+            group.MapGet("/", GetAll).CacheOutput(c => c.Expire(TimeSpan.FromMinutes(1)).Tag("actors-get"));
+            group.MapGet("/{id:int}", GetById);
+            group.MapGet("getByName/{name}", GetByName);
 
-            group.MapGet("/{id:int}", GetById).CacheOutput(options =>
-            {
-                options.Expire(TimeSpan.FromSeconds(30));
-                options.Tag("actors-get");
-            });
-
-            group.MapGet("getByName/{name}", GetByName).CacheOutput(options =>
-            {
-                options.Expire(TimeSpan.FromSeconds(30));
-                options.Tag("actors-get");
-            });
-
-            group.MapPut("/{id:int}", Update).DisableAntiforgery();
-
-            group.MapDelete("/{id:int}", Delete).DisableAntiforgery();
-
-            group.MapPost("/", Create).DisableAntiforgery();
+            group.MapPut("/{id:int}", Update).DisableAntiforgery().AddEndpointFilter<ValidationFilter<CreateActorDTO>>().RequireAuthorization("isadmin");
+            group.MapDelete("/{id:int}", Delete).DisableAntiforgery().RequireAuthorization("isadmin");
+            group.MapPost("/", Create).DisableAntiforgery().AddEndpointFilter<ValidationFilter<CreateActorDTO>>().RequireAuthorization("isadmin");
 
             return group;
         }
@@ -45,7 +31,7 @@ namespace MoviesApp.Endpoints
         static async Task<Created<ActorDTO>> Create([FromForm] CreateActorDTO createActorDTO,
            IActorsRepository repository, IOutputCacheStore outputCacheStore,
            IMapper mapper, IFileStorage fileStorage)
-        {
+        {           
             var actor = mapper.Map<Actor>(createActorDTO);
 
             //Local Storage - wwwroot/actors
