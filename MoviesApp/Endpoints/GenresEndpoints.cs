@@ -34,16 +34,16 @@ namespace MoviesApp.Endpoints
             return TypedResults.Ok(genreDTO);
         }
 
-        static async Task<Results<Ok<GenreDTO>, NotFound>> GetById(int id, IGenresRepository repository, IMapper mapper)
+        static async Task<Results<Ok<GenreDTO>, NotFound>> GetById([AsParameters]GetGenreByIdRequestDTO getGenreBy)
         {
-            var genre = await repository.GetById(id);
+            var genre = await getGenreBy.Repository.GetById(getGenreBy.Id);
 
             if (genre is null)
             {
                 return TypedResults.NotFound();
             }
 
-            var genreDTO = mapper.Map<GenreDTO>(genre);
+            var genreDTO = getGenreBy.Mapper.Map<GenreDTO>(genre);
 
             return TypedResults.Ok(genreDTO);
         }

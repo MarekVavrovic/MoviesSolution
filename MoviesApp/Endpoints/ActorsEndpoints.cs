@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
@@ -17,7 +16,9 @@ namespace MoviesApp.Endpoints
         private readonly static string container = "actors";
         public static RouteGroupBuilder MapActors(this RouteGroupBuilder group)
         {
-            group.MapGet("/", GetAll).CacheOutput(c => c.Expire(TimeSpan.FromMinutes(1)).Tag("actors-get"));
+            group.MapGet("/", GetAll)
+                .CacheOutput(c => c.Expire(TimeSpan.FromMinutes(1)).Tag("actors-get"));
+
             group.MapGet("/{id:int}", GetById);
             group.MapGet("getByName/{name}", GetByName);
 
@@ -47,9 +48,8 @@ namespace MoviesApp.Endpoints
             return TypedResults.Created($"/actors/{id}", actorDTO);
         }
 
-        static async Task<Ok<List<ActorDTO>>> GetAll(IActorsRepository repository, IMapper mapper, int page = 1, int recordsPerPage = 10)
-        {
-            var pagination = new PaginationDTO() { Page = page, RecordsPerPage = recordsPerPage };
+        static async Task<Ok<List<ActorDTO>>> GetAll(IActorsRepository repository, IMapper mapper,  PaginationDTO pagination)
+        {        
             var actors = await repository.GetAll(pagination);
             var actorsDTO = mapper.Map<List<ActorDTO>>(actors);
             return TypedResults.Ok(actorsDTO);

@@ -161,5 +161,40 @@ namespace MoviesApp.Repository
                     new { movieId = id, actors = dt }, commandType: CommandType.StoredProcedure);
             }
         }
+
+        public async Task<List<Movie>> Filter(MoviesFilterDTO moviesFilterDTO)
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                var movies = await connection.QueryAsync<Movie>("Movies_Filter",
+                    new
+                    {
+                        moviesFilterDTO.Page,
+                        moviesFilterDTO.RecordsPerPage,
+                        moviesFilterDTO.Title,
+
+                        moviesFilterDTO.GenreId,
+                        moviesFilterDTO.FutureReleases,
+                        moviesFilterDTO.InTheaters,
+
+                        moviesFilterDTO.OrderByField,
+                        moviesFilterDTO.OrderByAscending
+                    }, commandType: CommandType.StoredProcedure);
+
+                var moviesCount = await connection
+                    .QuerySingleAsync<int>("Movies_Count",
+                    new
+                    {
+                        moviesFilterDTO.Title,
+                        moviesFilterDTO.GenreId,
+                        moviesFilterDTO.FutureReleases,
+                        moviesFilterDTO.InTheaters
+                    }, commandType: CommandType.StoredProcedure);
+
+                _httpContext.Response.Headers.Append("totalAmountOfRecords", moviesCount.ToString());
+
+                return movies.ToList();
+            }
+        }
     }
 }
